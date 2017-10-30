@@ -88,6 +88,7 @@ def test_meta_from_recarray():
 
 
 def test_from_array():
+    import ipdb; ipdb.set_trace()
     x = np.arange(10 * 3).reshape(10, 3)
     d = dd.from_array(x, chunksize=4)
     assert isinstance(d, dd.DataFrame)

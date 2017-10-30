@@ -64,7 +64,7 @@ def _meta_from_array(x, columns=None):
     return pd.DataFrame(data, columns=columns)
 
 
-def from_array(x, chunksize=50000, columns=None):
+def from_array(x, chunksize=50000, columns=None, divisions=None):
     """ Read any slicable array into a Dask Dataframe
 
     Uses getitem syntax to pull slices out of the array.  The array need not be
@@ -80,6 +80,22 @@ def from_array(x, chunksize=50000, columns=None):
 
         x.dtype == [('name', 'O'), ('balance', 'i8')]
 
+    Parameters
+    ----------
+    x: sliceable array
+        In most use cases this will be a pytables table
+    chunksize: int, optional
+        size of a chunk that the dask array will have. Default 50000
+    columns: list, optional
+        list of columns for the dataframe
+    divisions: sliceable object, optional
+        divisions to split dask array. If None, divisions will be uniform
+
+    Returns
+    -------
+    dask.DataFrame or dask.Series
+        A dask DataFrame/Series
+
     """
     if isinstance(x, da.Array):
         return from_dask_array(x, columns=columns)
@@ -91,9 +107,12 @@ def from_array(x, chunksize=50000, columns=None):
     token = tokenize(x, chunksize, columns)
     name = 'from_array-' + token
 
+    if divisions is None:
+        divisions = [i * chunksize for i in range(0, int(ceil(len(x) / chunksize)) + 1)]
+
     dsk = {}
-    for i in range(0, int(ceil(len(x) / chunksize))):
-        data = (getitem, x, slice(i * chunksize, (i + 1) * chunksize))
+    for i, (cur_div, next_div) in enumerate(zip(divisions, divisions[1:])):
+        data = (getitem, x, slice(cur_div, next_div))
         if isinstance(meta, pd.Series):
             dsk[name, i] = (pd.Series, data, None, meta.dtype, meta.name)
         else:
@@ -342,7 +361,7 @@ def dataframe_from_ctable(x, slc, columns=None, categories=None, lock=lock):
     return result
 
 
-def from_dask_array(x, columns=None):
+def from_dask_array(x, columns=None, divisions=None):
     """ Create a Dask DataFrame from a Dask Array.
 
     Converts a 2d array into a DataFrame and a 1d array into a Series.
