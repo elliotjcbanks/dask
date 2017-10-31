@@ -102,8 +102,8 @@ def from_array(x, chunksize=50000, columns=None, divisions=None):
 
     meta = _meta_from_array(x, columns)
 
-    divisions = tuple(range(0, len(x), chunksize))
-    divisions = divisions + (len(x) - 1,)
+    divisions_m = tuple(range(0, len(x), chunksize))
+    divisions_m = divisions_m + (len(x) - 1,)
     token = tokenize(x, chunksize, columns)
     name = 'from_array-' + token
 
@@ -117,7 +117,7 @@ def from_array(x, chunksize=50000, columns=None, divisions=None):
             dsk[name, i] = (pd.Series, data, None, meta.dtype, meta.name)
         else:
             dsk[name, i] = (pd.DataFrame, data, None, meta.columns)
-    return new_dd_object(dsk, name, meta, divisions)
+    return new_dd_object(dsk, name, meta, divisions_m)
 
 
 def from_pandas(data, npartitions=None, chunksize=None, sort=True, name=None):
